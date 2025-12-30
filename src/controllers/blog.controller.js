@@ -74,7 +74,7 @@ const updateBlog = asyncHandler(async (req, res) => {
     }
 
     // Ownership check
-    if (blog.owner.toString() !== req.user._id.toString()) {
+    if (blog.owner !== req.user._id) {
         throw new ApiError(403, "You are not allowed to update this blog");
     }
 
@@ -114,7 +114,7 @@ const deleteBlog = asyncHandler(async (req, res) => {
     }
 
     // Ownership check
-    if (blog.owner.toString() !== req.user._id.toString()) {
+    if (blog.owner !== req.user._id) {
         throw new ApiError(403, "You are not allowed to delete this blog");
     }
 
