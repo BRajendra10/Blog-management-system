@@ -103,7 +103,6 @@ const updateBlog = asyncHandler(async (req, res) => {
     );
 });
 
-
 const deleteBlog = asyncHandler(async (req, res) => {
     const { blogId } = req.params;
 

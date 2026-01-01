@@ -139,7 +139,72 @@ const loginUser = asyncHandler(async (req, res) => {
         );
 });
 
+const logoutUser = asyncHandler(async (req, res) => {
+    // req.user should come from auth middleware
+    const userId = req.user?._id;
+
+    if (userId) {
+        await User.findByIdAndUpdate(
+            userId,
+            { $unset: { refreshToken: 1 } },
+            { new: true }
+        );
+    }
+
+    return res
+        .status(200)
+        .clearCookie("accessToken", accessTokenOptions)
+        .clearCookie("refreshToken", refreshTokenOptions)
+        .json(new ApiResponse(200, null, "Logged out successfully"));
+});
+
+const refreshAccessToken = asyncHandler(async (req, res) => {
+    const incomingRefreshToken = req.cookies?.refreshToken;
+
+    if (!incomingRefreshToken) {
+        throw new ApiError(401, "Refresh token missing");
+    }
+
+    let decoded;
+    try {
+        decoded = jwt.verify(
+            incomingRefreshToken,
+            process.env.REFRESH_TOKEN_SECRET
+        );
+    } catch (error) {
+        throw new ApiError(401, "Invalid or expired refresh token");
+    }
+
+    const user = await User.findById(decoded._id);
+
+    if (!user || user.refreshToken !== incomingRefreshToken) {
+        throw new ApiError(401, "Refresh token is invalid or reused");
+    }
+
+    const newAccessToken = generateAccessToken(user._id);
+    const newRefreshToken = generateRefreshToken(user._id);
+
+    user.refreshToken = newRefreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    return res
+        .status(200)
+        .cookie("accessToken", newAccessToken, accessTokenOptions)
+        .cookie("refreshToken", newRefreshToken, refreshTokenOptions)
+        .json(
+            new ApiResponse(
+                200,
+                null,
+                "Access token refreshed successfully"
+            )
+        );
+});
+
+
+
 export {
     registerUser,
     loginUser,
+    refreshAccessToken,
+    logoutUser
 }
